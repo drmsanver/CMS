@@ -40,3 +40,26 @@ export async function addCounselor(data: { name: string, email: string, password
   revalidatePath('/dashboard/counselors');
   return { success: true };
 }
+
+export async function assignGradesToCounselor(counselorId: string, gradeLevels: string[]) {
+  const session = await getServerSession(authOptions);
+  const currentRole = (session?.user as any)?.role;
+
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL'].includes(currentRole)) {
+    throw new Error("Unauthorized: Only Administrators can assign grades to counselors.");
+  }
+
+  // Delete existing assignments and create new ones in a transaction
+  await prisma.$transaction([
+    prisma.counselorGradeAssignment.deleteMany({ where: { userId: counselorId } }),
+    ...gradeLevels.map(gradeLevel =>
+      prisma.counselorGradeAssignment.create({
+        data: { userId: counselorId, gradeLevel }
+      })
+    )
+  ]);
+
+  revalidatePath(`/dashboard/counselors/profile/${counselorId}`);
+  revalidatePath('/dashboard/counselors');
+  return { success: true };
+}

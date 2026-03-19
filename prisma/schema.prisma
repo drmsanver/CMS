@@ -32,6 +32,7 @@ model Campus {
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   users          User[]
   students       Student[]
+  classrooms     Classroom[]
 }
 
 // ---------------------------------------------
@@ -63,11 +64,45 @@ model User {
   campus         Campus?      @relation(fields: [campusId], references: [id], onDelete: SetNull)
 
   // Relations for specific roles
-  counselingRecords CounselingRecord[]  @relation("CounselorRecords")
-  observationReports ObservationReport[] @relation("TeacherReports")
-  assignedTasks      Task[]              @relation("AssignedTo")
-  createdTasks       Task[]              @relation("CreatedBy")
-  events             Event[]             @relation("Organizer")
+  counselingRecords  CounselingRecord[]          @relation("CounselorRecords")
+  observationReports ObservationReport[]         @relation("TeacherReports")
+  assignedTasks      Task[]                      @relation("AssignedTo")
+  createdTasks       Task[]                      @relation("CreatedBy")
+  events             Event[]                     @relation("Organizer")
+  primaryClassroom   Classroom?                  @relation("PrimaryTeacher")
+  counselorGrades    CounselorGradeAssignment[]  @relation("CounselorGrades")
+}
+
+// ---------------------------------------------
+// Classrooms
+// ---------------------------------------------
+
+model Classroom {
+  id               String   @id @default(cuid())
+  campusId         String
+  name             String       // e.g. "3-A", "5-B"
+  gradeLevel       String       // e.g. "3", "5", "Kindergarten"
+  primaryTeacherId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  campus           Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  primaryTeacher   User?    @relation("PrimaryTeacher", fields: [primaryTeacherId], references: [id])
+  students         Student[]
+}
+
+// ---------------------------------------------
+// Counselor Grade Assignments
+// ---------------------------------------------
+
+model CounselorGradeAssignment {
+  id         String @id @default(cuid())
+  userId     String
+  gradeLevel String
+
+  user       User   @relation("CounselorGrades", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gradeLevel])
 }
 
 // ---------------------------------------------
@@ -77,6 +112,7 @@ model User {
 model Student {
   id             String       @id @default(cuid())
   campusId       String
+  classroomId    String?
   studentNumber  String       @unique
   firstName      String
   lastName       String
@@ -96,6 +132,7 @@ model Student {
   updatedAt      DateTime     @updatedAt
 
   campus         Campus       @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  classroom      Classroom?   @relation(fields: [classroomId], references: [id], onDelete: SetNull)
   records        CounselingRecord[]
   observations   ObservationReport[]
 }
@@ -165,3 +202,4 @@ model Event {
 
   organizer     User     @relation("Organizer", fields: [organizerId], references: [id])
 }
+

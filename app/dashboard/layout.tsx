@@ -28,6 +28,8 @@ export default async function DashboardLayout({
         <nav className={styles.nav}>
           <Link href="/dashboard" className={styles.navItem}>Dashboard</Link>
           <Link href="/dashboard/students" className={styles.navItem}>Students</Link>
+          <Link href="/dashboard/classrooms" className={styles.navItem}>Classrooms</Link>
+          <Link href="/dashboard/teachers" className={styles.navItem}>Teachers</Link>
           <Link href="/dashboard/counselors" className={styles.navItem}>Counselors</Link>
           <Link href="/dashboard/tasks" className={styles.navItem}>Tasks</Link>
           <Link href="/dashboard/events" className={styles.navItem}>Events</Link>
