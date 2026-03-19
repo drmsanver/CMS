@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------
+// Multi-Tenancy & Org Structure
+// ---------------------------------------------
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  subdomain String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campuses  Campus[]
+  users     User[]
+}
+
+model Campus {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  address        String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users          User[]
+  students       Student[]
+}
+
+// ---------------------------------------------
+// Users & Role-Based Access Control (RBAC)
+// ---------------------------------------------
+
+enum Role {
+  SUPER_ADMIN
+  ORG_ADMIN
+  PRINCIPAL
+  COUNSELOR
+  TEACHER
+  PARENT
+  STUDENT
+}
+
+model User {
+  id             String       @id @default(cuid())
+  organizationId String
+  campusId       String?      // Optional: ORG_ADMIN might not belong to a single campus
+  role           Role         @default(STUDENT)
+  email          String       @unique
+  name           String
+  passwordHash   String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campus         Campus?      @relation(fields: [campusId], references: [id], onDelete: SetNull)
+
+  // Relations for specific roles
+  counselingRecords CounselingRecord[]  @relation("CounselorRecords")
+  observationReports ObservationReport[] @relation("TeacherReports")
+  assignedTasks      Task[]              @relation("AssignedTo")
+  createdTasks       Task[]              @relation("CreatedBy")
+  events             Event[]             @relation("Organizer")
+}
+
+// ---------------------------------------------
+// Core Entities: Students
+// ---------------------------------------------
+
+model Student {
+  id             String       @id @default(cuid())
+  campusId       String
+  studentNumber  String       @unique
+  firstName      String
+  lastName       String
+  gradeLevel     String
+  dateOfBirth    DateTime?
+  
+  // Parent Contact Information
+  fatherName     String?
+  fatherPhone    String?
+  fatherEmail    String?
+  motherName     String?
+  motherPhone    String?
+  motherEmail    String?
+  defaultContact String?      // "FATHER" or "MOTHER"
+
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  campus         Campus       @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  records        CounselingRecord[]
+  observations   ObservationReport[]
+}
+
+// ---------------------------------------------
+// Counseling & Observations (MEB Compliant)
+// ---------------------------------------------
+
+model CounselingRecord {
+  id            String   @id @default(cuid())
+  studentId     String
+  counselorId   String
+  date          DateTime @default(now())
+  subject       String
+  notes         String   @db.Text
+  isConfidential Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  counselor     User     @relation("CounselorRecords", fields: [counselorId], references: [id])
+}
+
+model ObservationReport {
+  id            String   @id @default(cuid())
+  studentId     String
+  teacherId     String
+  date          DateTime @default(now())
+  behaviorType  String
+  notes         String   @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher       User     @relation("TeacherReports", fields: [teacherId], references: [id])
+}
+
+// ---------------------------------------------
+// Tasks & Events Focus
+// ---------------------------------------------
+
+model Task {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?  @db.Text
+  dueDate       DateTime?
+  status        String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  assignedToId  String
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  assignedTo    User     @relation("AssignedTo", fields: [assignedToId], references: [id])
+  createdBy     User     @relation("CreatedBy", fields: [createdById], references: [id])
+}
+
+model Event {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?  @db.Text
+  eventType     String   // SEMINAR, MEETING, COUNSELING_GROUP
+  startTime     DateTime
+  endTime       DateTime
+  organizerId   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  organizer     User     @relation("Organizer", fields: [organizerId], references: [id])
+}
