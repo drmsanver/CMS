@@ -25,7 +25,19 @@ model Campus {
   id             String       @id @default(cuid())
   organizationId String
   name           String
+  fullName       String?      // Full name of the school/branch
+  shortName      String?      // Short name or code
+  principalName  String?      // Principal's name
   address        String?
+  phoneNumbers   String[]     // Multiple phone numbers
+  logoUrl        String?      // URL to logo image
+  websiteUrl     String?      // School website
+  email          String?      // General contact email
+  socialMedia    Json?        // { twitter: "...", facebook: "...", etc }
+  orderWeight    Int          @default(0) // Higher value = listed at top
+  images         String[]     // Multiple picture URLs
+  grades         String[]     // Grades available on this campus
+
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
@@ -33,6 +45,11 @@ model Campus {
   users          User[]
   students       Student[]
   classrooms     Classroom[]
+  gradeGroups    GradeGroup[]
+  semesters      Semester[]
+  goals          Goal[]
+  activityTypes  ActivityType[]
+  participants   Participant[]
 }
 
 // ---------------------------------------------
@@ -44,6 +61,7 @@ enum Role {
   ORG_ADMIN
   PRINCIPAL
   COUNSELOR
+  COORDINATOR
   TEACHER
   PARENT
   STUDENT
@@ -89,6 +107,73 @@ model Classroom {
   campus           Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
   primaryTeacher   User?    @relation("PrimaryTeacher", fields: [primaryTeacherId], references: [id])
   students         Student[]
+}
+
+// ---------------------------------------------
+// Grade Groups (Coordinator focus)
+// ---------------------------------------------
+
+model GradeGroup {
+  id        String   @id @default(cuid())
+  campusId  String
+  name      String   // e.g. "Elementary School", "Middle School"
+  grades    String[] // e.g. ["1", "2", "3", "4"]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campus    Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  tasks     Task[]   @relation("TaskToGradeGroup")
+}
+
+// ---------------------------------------------
+// Semester, Goal & Activity Infrastructure
+// ---------------------------------------------
+
+model Semester {
+  id        String   @id @default(cuid())
+  campusId  String
+  name      String   // e.g. "2025-2026 Spring", "2025-2026 1st Quarter"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campus    Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+}
+
+model Goal {
+  id          String   @id @default(cuid())
+  campusId    String
+  code        String   // Unique goal code
+  title       String   // Short Title
+  description String?  @db.Text
+  mandatedBy  String   // MEB, "Name of the College", School Principle, Teachers, Counselors
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campus      Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  tasks       Task[]   @relation("TaskToGoals")
+}
+
+model ActivityType {
+  id        String   @id @default(cuid())
+  campusId  String
+  name      String   // e.g. "seminar", "meeting", "exhibition", "training"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campus    Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+}
+
+model Participant {
+  id        String   @id @default(cuid())
+  campusId  String
+  name      String   // e.g. "Main College", "Specific Campus"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campus    Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  tasks     Task[]   @relation("TaskToParticipants")
 }
 
 // ---------------------------------------------
@@ -178,15 +263,38 @@ model Task {
   id            String   @id @default(cuid())
   title         String
   description   String?  @db.Text
+  startDate     DateTime?
   dueDate       DateTime?
   status        String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  
+  semesterId    String?
+  activityTypeId String?
   assignedToId  String
   createdById   String
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   assignedTo    User     @relation("AssignedTo", fields: [assignedToId], references: [id])
   createdBy     User     @relation("CreatedBy", fields: [createdById], references: [id])
+  
+  semester      Semester? @relation(fields: [semesterId], references: [id])
+  activityType  ActivityType? @relation(fields: [activityTypeId], references: [id])
+  
+  gradeGroups   GradeGroup[] @relation("TaskToGradeGroup")
+  goals         Goal[]       @relation("TaskToGoals")
+  participants  Participant[] @relation("TaskToParticipants")
+  attachments   Attachment[]
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  fileName  String
+  fileUrl   String
+  taskId    String
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model Event {

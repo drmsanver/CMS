@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { addCounselor } from "@/app/actions/counselor";
 
 export default function NewCounselorPage() {
@@ -39,7 +40,10 @@ export default function NewCounselorPage() {
   return (
     <div className="animate-fade-in" style={{ maxWidth: '600px', margin: '0 auto' }}>
       <div className="glass-panel" style={{ padding: '2.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--color-primary)' }}>Register New Counselor</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+          <Link href="/dashboard/counselors" className="btn-secondary" style={{ padding: '0.4rem 0.8rem', textDecoration: 'none', fontSize: '0.875rem' }}>← Back</Link>
+          <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--color-primary)' }}>Register New Counselor</h2>
+        </div>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.875rem' }}>
           Add a new psychological counselor to your campus. Credentials will be securely hashed, and strict Role-Based Access control applies automatically.
         </p>

@@ -38,3 +38,42 @@ export async function addTeacher(data: { name: string; email: string; passwordRa
   revalidatePath('/dashboard/teachers');
   return { success: true };
 }
+
+export async function assignTeacherToClassroom(teacherId: string, classroomId: string | null) {
+  const session = await getServerSession(authOptions);
+  const currentRole = (session?.user as any)?.role;
+
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL'].includes(currentRole)) {
+    throw new Error("Unauthorized.");
+  }
+
+  // Use a transaction to ensure 1:1 consistency if needed, 
+  // but Prisma @unique + connect/disconnect handles much of this.
+  
+  // 1. First, if we are assigning to a new classroom, 
+  // we should check if that classroom already has a different teacher 
+  // (Prisma will throw if we try to connect a second teacher to a @unique field, 
+  // but let's be explicit if we want to 'swap' or 'overwrite').
+  
+  // Actually, the simplest way to "assign teacher X to classroom Y":
+  // Update classroom Y to have primaryTeacherId = X.
+  // Because primaryTeacherId is @unique on Classroom, this ensures no two teachers share a class.
+  // Because primaryClassroom is the inverse relation, a teacher can only have one.
+  
+  if (classroomId) {
+    await prisma.classroom.update({
+      where: { id: classroomId },
+      data: { primaryTeacherId: teacherId }
+    });
+  } else {
+    // If classroomId is null, we are "unassigning" the teacher from THEIR current classroom
+    await prisma.classroom.updateMany({
+      where: { primaryTeacherId: teacherId },
+      data: { primaryTeacherId: null }
+    });
+  }
+
+  revalidatePath('/dashboard/teachers');
+  revalidatePath('/dashboard/classrooms');
+  return { success: true };
+}

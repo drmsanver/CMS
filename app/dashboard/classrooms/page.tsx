@@ -29,6 +29,13 @@ export default async function ClassroomsPage() {
     orderBy: { lastName: 'asc' }
   });
 
+  // Get all teachers for this campus
+  const allTeachers = await prisma.user.findMany({
+    where: { campusId, role: 'TEACHER' },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' }
+  });
+
   const canCreate = ['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL'].includes(currentRole);
 
   return (
@@ -48,6 +55,7 @@ export default async function ClassroomsPage() {
         <ClassroomManager 
           classrooms={JSON.parse(JSON.stringify(classrooms))} 
           unassignedStudents={JSON.parse(JSON.stringify(unassignedStudents))} 
+          allTeachers={JSON.parse(JSON.stringify(allTeachers))}
         />
       )}
     </div>

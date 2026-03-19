@@ -31,7 +31,15 @@ export default async function DashboardLayout({
           <Link href="/dashboard/classrooms" className={styles.navItem}>Classrooms</Link>
           <Link href="/dashboard/teachers" className={styles.navItem}>Teachers</Link>
           <Link href="/dashboard/counselors" className={styles.navItem}>Counselors</Link>
-          <Link href="/dashboard/tasks" className={styles.navItem}>Tasks</Link>
+          <hr style={{ margin: '0.5rem 0', border: '0', borderTop: '1px solid var(--border-subtle)' }} />
+          <Link href="/dashboard/schools" className={styles.navItem}>Schools / Branches</Link>
+          <Link href="/dashboard/semesters" className={styles.navItem}>Semesters</Link>
+          <Link href="/dashboard/goals" className={styles.navItem}>Goals</Link>
+          <Link href="/dashboard/grade-groups" className={styles.navItem}>Grade Groups</Link>
+          <Link href="/dashboard/infrastructure" className={styles.navItem}>Infrastructure</Link>
+          <hr style={{ margin: '0.5rem 0', border: '0', borderTop: '1px solid var(--border-subtle)' }} />
+          <Link href="/dashboard/coordinator-tasks" className={styles.navItem}>Coordinator Tasks</Link>
+          <Link href="/dashboard/tasks" className={styles.navItem}>My Tasks</Link>
           <Link href="/dashboard/events" className={styles.navItem}>Events</Link>
         </nav>
 

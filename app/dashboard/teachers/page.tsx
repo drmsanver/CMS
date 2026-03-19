@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import TeacherManager from "./TeacherManager";
 
 export default async function TeachersPage() {
   const session = await getServerSession(authOptions);
@@ -20,9 +21,15 @@ export default async function TeachersPage() {
       email: true,
       createdAt: true,
       primaryClassroom: {
-        select: { name: true, gradeLevel: true }
+        select: { id: true, name: true, gradeLevel: true }
       }
     }
+  });
+
+  const classrooms = await prisma.classroom.findMany({
+    where: { campusId },
+    select: { id: true, name: true, gradeLevel: true },
+    orderBy: [{ gradeLevel: 'asc' }, { name: 'asc' }]
   });
 
   const canCreate = ['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL'].includes(currentRole);
@@ -36,53 +43,16 @@ export default async function TeachersPage() {
         )}
       </div>
 
-      <div className="glass-panel" style={{ overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-subtle)', backgroundColor: 'var(--bg-main)' }}>
-              <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Name</th>
-              <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Email Address</th>
-              <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Primary Classroom</th>
-              <th style={{ padding: '1rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Joined Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teachers.length === 0 ? (
-              <tr>
-                <td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  No teachers found for this campus.
-                </td>
-              </tr>
-            ) : (
-              teachers.map((teacher: any) => (
-                <tr key={teacher.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <td style={{ padding: '1rem', fontWeight: 500 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--color-secondary)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem', fontWeight: 600 }}>
-                        {teacher.name.charAt(0).toUpperCase()}
-                      </div>
-                      {teacher.name}
-                    </div>
-                  </td>
-                  <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>{teacher.email}</td>
-                  <td style={{ padding: '1rem' }}>
-                    {teacher.primaryClassroom ? (
-                      <span style={{ background: 'var(--bg-main)', padding: '0.25rem 0.75rem', borderRadius: '999px', fontSize: '0.875rem', fontWeight: 500 }}>
-                        {teacher.primaryClassroom.name} (Grade {teacher.primaryClassroom.gradeLevel})
-                      </span>
-                    ) : (
-                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Not assigned</span>
-                    )}
-                  </td>
-                  <td style={{ padding: '1rem', color: 'var(--text-secondary)' }}>
-                    {new Date(teacher.createdAt).toLocaleDateString()}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {teachers.length === 0 ? (
+        <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          No teachers found for this campus.
+        </div>
+      ) : (
+        <TeacherManager 
+          initialTeachers={JSON.parse(JSON.stringify(teachers))} 
+          classrooms={JSON.parse(JSON.stringify(classrooms))} 
+        />
+      )}
     </div>
   );
 }

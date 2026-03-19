@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClassroom } from "@/app/actions/classroom";
 
 export default function NewClassroomPage({ searchParams }: { searchParams: any }) {
@@ -46,7 +47,10 @@ export default function NewClassroomPage({ searchParams }: { searchParams: any }
   return (
     <div className="animate-fade-in" style={{ maxWidth: '600px', margin: '0 auto' }}>
       <div className="glass-panel" style={{ padding: '2.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--color-primary)' }}>Create New Classroom</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+          <Link href="/dashboard/classrooms" className="btn-secondary" style={{ padding: '0.4rem 0.8rem', textDecoration: 'none', fontSize: '0.875rem' }}>← Back</Link>
+          <h2 style={{ fontSize: '1.5rem', margin: 0, color: 'var(--color-primary)' }}>Create New Classroom</h2>
+        </div>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', fontSize: '0.875rem' }}>
           Create a classroom and optionally assign a primary teacher.
         </p>

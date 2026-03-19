@@ -63,3 +63,40 @@ export async function removeStudentFromClassroom(studentId: string) {
   revalidatePath('/dashboard/students');
   return { success: true };
 }
+
+export async function updateClassroom(id: string, data: { name: string; gradeLevel: string; primaryTeacherId?: string }) {
+  const session = await getServerSession(authOptions);
+  const currentRole = (session?.user as any)?.role;
+
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL'].includes(currentRole)) {
+    throw new Error("Unauthorized.");
+  }
+
+  await prisma.classroom.update({
+    where: { id },
+    data: {
+      name: data.name,
+      gradeLevel: data.gradeLevel,
+      primaryTeacherId: data.primaryTeacherId || undefined, // use undefined to not update if null? No, schema says @unique primaryTeacherId String?
+    }
+  });
+
+  revalidatePath('/dashboard/classrooms');
+  return { success: true };
+}
+
+export async function deleteClassroom(id: string) {
+  const session = await getServerSession(authOptions);
+  const currentRole = (session?.user as any)?.role;
+
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL'].includes(currentRole)) {
+    throw new Error("Unauthorized.");
+  }
+
+  await prisma.classroom.delete({
+    where: { id }
+  });
+
+  revalidatePath('/dashboard/classrooms');
+  return { success: true };
+}
