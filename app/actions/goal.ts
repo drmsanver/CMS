@@ -44,3 +44,25 @@ export async function deleteGoal(id: string) {
   revalidatePath('/dashboard/goals');
   return { success: true };
 }
+
+export async function updateGoal(id: string, data: { 
+  code: string; 
+  title: string; 
+  description?: string; 
+  mandatedBy: string 
+}) {
+  const session = await getServerSession(authOptions);
+  const currentRole = (session?.user as any)?.role;
+
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL', 'COORDINATOR'].includes(currentRole)) {
+    throw new Error("Unauthorized.");
+  }
+
+  await prisma.goal.update({
+    where: { id },
+    data
+  });
+
+  revalidatePath('/dashboard/goals');
+  return { success: true };
+}

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createGoal, deleteGoal } from "@/app/actions/goal";
+import { createGoal, updateGoal, deleteGoal } from "@/app/actions/goal";
+import Link from "next/link";
 
 const MANDATED_BY_OPTIONS = [
   "MEB",
@@ -16,6 +17,7 @@ export default function GoalManager({ initialGoals }: { initialGoals: any[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     code: "",
@@ -28,9 +30,12 @@ export default function GoalManager({ initialGoals }: { initialGoals: any[] }) {
     e.preventDefault();
     setLoading(true);
     try {
-      await createGoal(formData);
-      setFormData({ code: "", title: "", description: "", mandatedBy: "MEB" });
-      setShowAdd(false);
+      if (editId) {
+        await updateGoal(editId, formData);
+      } else {
+        await createGoal(formData);
+      }
+      handleCancel();
       router.refresh();
     } catch (err: any) {
       alert(err.message);
@@ -39,13 +44,45 @@ export default function GoalManager({ initialGoals }: { initialGoals: any[] }) {
     }
   };
 
+  const startEdit = (goal: any) => {
+    setEditId(goal.id);
+    setFormData({
+      code: goal.code,
+      title: goal.title,
+      description: goal.description || "",
+      mandatedBy: goal.mandatedBy
+    });
+    setShowAdd(true);
+  };
+
+  const handleCancel = () => {
+    setShowAdd(false);
+    setEditId(null);
+    setFormData({ code: "", title: "", description: "", mandatedBy: "MEB" });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure?")) return;
+    try {
+      await deleteGoal(id);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      
+      <Link href="/dashboard/coordinator-tasks" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.875rem' }}>
+        ← Back to Tasks
+      </Link>
+
       {!showAdd ? (
         <button onClick={() => setShowAdd(true)} className="btn-primary" style={{ alignSelf: 'flex-start' }}>+ Define New Goal</button>
       ) : (
         <div className="glass-panel" style={{ padding: '2rem' }}>
-          <h3 style={{ marginBottom: '1.5rem' }}>New Strategic Goal</h3>
+          <h3 style={{ marginBottom: '1.5rem' }}>{editId ? "Edit Goal" : "New Strategic Goal"}</h3>
           <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label>Goal Code</label>
@@ -66,8 +103,8 @@ export default function GoalManager({ initialGoals }: { initialGoals: any[] }) {
               <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="input-field" style={{ minHeight: '100px' }} />
             </div>
             <div style={{ display: 'flex', gap: '1rem', gridColumn: 'span 2' }}>
-              <button type="submit" disabled={loading} className="btn-primary" style={{ padding: '0.75rem 2rem' }}>{loading ? 'Saving...' : 'Save Goal'}</button>
-              <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary" style={{ padding: '0.75rem 2rem' }}>Cancel</button>
+              <button type="submit" disabled={loading} className="btn-primary" style={{ padding: '0.75rem 2rem' }}>{loading ? 'Saving...' : (editId ? 'Update Goal' : 'Save Goal')}</button>
+              <button type="button" onClick={handleCancel} className="btn-secondary" style={{ padding: '0.75rem 2rem' }}>Cancel</button>
             </div>
           </form>
         </div>
@@ -88,14 +125,17 @@ export default function GoalManager({ initialGoals }: { initialGoals: any[] }) {
               <tr key={goal.id} style={{ borderBottom: '1px solid var(--border-subtle)' }}>
                 <td style={{ padding: '1rem', fontWeight: 600 }}>{goal.code}</td>
                 <td style={{ padding: '1rem' }}>
-                  <div>{goal.title}</div>
+                  <div style={{ fontWeight: 500 }}>{goal.title}</div>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{goal.description}</div>
                 </td>
                 <td style={{ padding: '1rem' }}>
                   <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'var(--bg-main)', borderRadius: '4px' }}>{goal.mandatedBy}</span>
                 </td>
                 <td style={{ padding: '1rem', textAlign: 'right' }}>
-                  <button onClick={() => deleteGoal(goal.id).then(() => router.refresh())} style={{ background: 'none', border: 'none', color: 'var(--color-error)', cursor: 'pointer' }}>Delete</button>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                    <button onClick={() => startEdit(goal)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>✏️</button>
+                    <button onClick={() => handleDelete(goal.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>🗑️</button>
+                  </div>
                 </td>
               </tr>
             ))}

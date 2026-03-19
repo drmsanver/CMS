@@ -2,8 +2,36 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createCoordinatorTask } from "@/app/actions/coordinator";
+import { 
+  createCoordinatorTask, 
+  updateCoordinatorTask, 
+  deleteTask, 
+  updateTaskStatus 
+} from "@/app/actions/coordinator";
+import { 
+  createActivityType, 
+  updateActivityType, 
+  deleteActivityType,
+  createParticipant, 
+  updateParticipant, 
+  deleteParticipant 
+} from "@/app/actions/infrastructure";
+import { createGoal, deleteGoal } from "@/app/actions/goal";
 import Link from "next/link";
+
+// --- Components ---
+
+function ManagedModal({ title, onClose, children }: { title: string, onClose: () => void, children: React.ReactNode }) {
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '2rem' }}>
+      <div className="glass-panel" style={{ width: '100%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto', padding: '2rem', position: 'relative' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: '1rem', right: '1rem', border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>×</button>
+        <h3 style={{ marginBottom: '1.5rem' }}>{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function CoordinatorTaskManager({ 
   initialTasks, 
@@ -23,6 +51,9 @@ export default function CoordinatorTaskManager({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+
+  const [activeModal, setActiveModal] = useState<'goals' | 'activity' | 'participants' | null>(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -33,7 +64,8 @@ export default function CoordinatorTaskManager({
     semesterId: "",
     activityTypeId: "",
     goalIds: [] as string[],
-    participantIds: [] as string[]
+    participantIds: [] as string[],
+    attachments: [] as { fileName: string, fileUrl: string }[]
   });
 
   const toggleItem = (listName: 'groupIds' | 'goalIds' | 'participantIds', id: string) => {
@@ -50,25 +82,76 @@ export default function CoordinatorTaskManager({
     if (formData.groupIds.length === 0) return alert("Please select at least one grade group.");
     setLoading(true);
     try {
-      await createCoordinatorTask({
+      const payload = {
         ...formData,
         dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
         startDate: formData.startDate ? new Date(formData.startDate) : undefined,
         semesterId: formData.semesterId || undefined,
         activityTypeId: formData.activityTypeId || undefined
-      });
-      setShowAdd(false);
-      setFormData({ 
-        title: "", description: "", dueDate: "", startDate: "", 
-        groupIds: [], semesterId: "", activityTypeId: "", 
-        goalIds: [], participantIds: [] 
-      });
+      };
+
+      if (editId) {
+        await updateCoordinatorTask(editId, payload);
+      } else {
+        await createCoordinatorTask(payload);
+      }
+      
+      handleCancel();
       router.refresh();
     } catch (err: any) {
-      alert(err.message || "Failed to create task.");
+      alert(err.message || "Failed to save task.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEdit = (task: any) => {
+    setEditId(task.id);
+    setFormData({
+      title: task.title,
+      description: task.description || "",
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "",
+      startDate: task.startDate ? new Date(task.startDate).toISOString().split('T')[0] : "",
+      groupIds: task.gradeGroups.map((g: any) => g.id),
+      semesterId: task.semesterId || "",
+      activityTypeId: task.activityTypeId || "",
+      goalIds: task.goals.map((g: any) => g.id),
+      participantIds: task.participants.map((p: any) => p.id),
+      attachments: task.attachments || []
+    });
+    setShowAdd(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    setLoading(true);
+    try {
+      await deleteTask(id);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    try {
+      await updateTaskStatus(id, newStatus);
+      router.refresh();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowAdd(false);
+    setEditId(null);
+    setFormData({ 
+      title: "", description: "", dueDate: "", startDate: "", 
+      groupIds: [], semesterId: "", activityTypeId: "", 
+      goalIds: [], participantIds: [], attachments: []
+    });
   };
 
   return (
@@ -78,7 +161,7 @@ export default function CoordinatorTaskManager({
         <button onClick={() => setShowAdd(true)} className="btn-primary" style={{ alignSelf: 'flex-start' }}>+ Create New Task</button>
       ) : (
         <div className="glass-panel" style={{ padding: '2rem' }}>
-          <h3 style={{ marginBottom: '1.5rem' }}>New Group Task</h3>
+          <h3 style={{ marginBottom: '1.5rem' }}>{editId ? "Edit Task" : "New Group Task"}</h3>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -111,7 +194,7 @@ export default function CoordinatorTaskManager({
                     <option value="">Type...</option>
                     {activityTypes.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                   </select>
-                  <Link href="/dashboard/infrastructure" className="btn-secondary" style={{ padding: '0.5rem', display: 'flex', alignItems: 'center' }}>⚙️</Link>
+                  <button type="button" onClick={() => setActiveModal('activity')} className="btn-secondary" style={{ padding: '0.5rem' }}>⚙️</button>
                 </div>
               </div>
             </div>
@@ -128,7 +211,7 @@ export default function CoordinatorTaskManager({
                     cursor: 'pointer'
                   }}>{g.code}: {g.title}</button>
                 ))}
-                <Link href="/dashboard/goals" style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textDecoration: 'underline', alignSelf: 'center' }}>+ Manage Goals</Link>
+                <button type="button" onClick={() => setActiveModal('goals')} style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textDecoration: 'underline', border: 'none', background: 'none', cursor: 'pointer' }}>+ Manage Goals</button>
               </div>
             </div>
 
@@ -144,7 +227,7 @@ export default function CoordinatorTaskManager({
                     cursor: 'pointer'
                   }}>{p.name}</button>
                 ))}
-                <Link href="/dashboard/infrastructure" style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textDecoration: 'underline', alignSelf: 'center' }}>+ Manage Participants</Link>
+                <button type="button" onClick={() => setActiveModal('participants')} style={{ fontSize: '0.75rem', color: 'var(--color-primary)', textDecoration: 'underline', border: 'none', background: 'none', cursor: 'pointer' }}>+ Manage Participants</button>
               </div>
             </div>
 
@@ -170,15 +253,15 @@ export default function CoordinatorTaskManager({
                 <button type="button" onClick={() => {
                   const val = (document.getElementById('new-attach') as HTMLInputElement).value;
                   if (val) {
-                    setFormData(prev => ({ ...prev, attachments: [...(prev as any).attachments || [], { fileName: val, fileUrl: val }] }));
+                    setFormData(prev => ({ ...prev, attachments: [...prev.attachments, { fileName: val, fileUrl: val }] }));
                     (document.getElementById('new-attach') as HTMLInputElement).value = "";
                   }
                 }} className="btn-secondary">Add</button>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
-                {(formData as any).attachments?.map((at: any, i: number) => (
-                  <span key={i} style={{ fontSize: '0.75rem', background: 'var(--bg-main)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>
-                    📄 {at.fileName} <button type="button" onClick={() => setFormData(prev => ({ ...prev, attachments: (prev as any).attachments.filter((_: any, idx: number) => idx !== i) }))} style={{ color: 'var(--color-error)', border: 'none', background: 'none', cursor: 'pointer' }}>×</button>
+                {formData.attachments.map((at, i) => (
+                  <span key={i} style={{ fontSize: '0.75rem', background: 'var(--bg-main)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    📄 {at.fileName} <button type="button" onClick={() => setFormData(prev => ({ ...prev, attachments: prev.attachments.filter((_, idx) => idx !== i) }))} style={{ color: 'var(--color-error)', border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>×</button>
                   </span>
                 ))}
               </div>
@@ -190,8 +273,8 @@ export default function CoordinatorTaskManager({
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-              <button type="submit" disabled={loading} className="btn-primary" style={{ padding: '0.75rem 2rem' }}>{loading ? 'Creating...' : 'Create Task'}</button>
-              <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary" style={{ padding: '0.75rem 2rem' }}>Cancel</button>
+              <button type="submit" disabled={loading} className="btn-primary" style={{ padding: '0.75rem 2rem' }}>{loading ? 'Saving...' : (editId ? 'Update Task' : 'Create Task')}</button>
+              <button type="button" onClick={handleCancel} className="btn-secondary" style={{ padding: '0.75rem 2rem' }}>Cancel</button>
             </div>
           </form>
         </div>
@@ -205,6 +288,7 @@ export default function CoordinatorTaskManager({
               <th style={{ padding: '1rem' }}>Targets & Goals</th>
               <th style={{ padding: '1rem' }}>Timeline</th>
               <th style={{ padding: '1rem' }}>Status</th>
+              <th style={{ padding: '1rem' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -229,13 +313,65 @@ export default function CoordinatorTaskManager({
                   <div style={{ color: 'var(--text-secondary)' }}>Due: {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'N/A'}</div>
                 </td>
                 <td style={{ padding: '1rem' }}>
-                   <span style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '999px', background: '#fef3c7', color: '#92400e' }}>{task.status}</span>
+                  <select 
+                    value={task.status} 
+                    onChange={(e) => handleStatusChange(task.id, e.target.value)}
+                    style={{ 
+                      fontSize: '0.75rem', padding: '0.2rem 0.5rem', borderRadius: '999px', 
+                      background: task.status === 'COMPLETED' ? '#d1fae5' : '#fef3c7',
+                      color: task.status === 'COMPLETED' ? '#065f46' : '#92400e',
+                      border: 'none', cursor: 'pointer'
+                    }}
+                  >
+                    <option value="PENDING">PENDING</option>
+                    <option value="IN_PROGRESS">IN_PROGRESS</option>
+                    <option value="COMPLETED">COMPLETED</option>
+                  </select>
+                </td>
+                <td style={{ padding: '1rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button onClick={() => handleEdit(task)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✏️</button>
+                    <button onClick={() => handleDelete(task.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>🗑️</button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* --- Modals --- */}
+      {activeModal === 'goals' && (
+        <ManagedModal title="Quick Manage Goals" onClose={() => { setActiveModal(null); router.refresh(); }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Defining new goals will refresh the list. Existing selections will be kept.</p>
+             <Link href="/dashboard/goals" className="btn-primary" style={{ textAlign: 'center' }}>Go to Full Goal Manager</Link>
+             <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
+                <p>Curret Goals:</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  {goals.map(g => <span key={g.id} style={{ fontSize: '0.75rem', background: 'var(--bg-main)', padding: '0.2rem 0.5rem', borderRadius: '4px' }}>{g.code}</span>)}
+                </div>
+             </div>
+          </div>
+        </ManagedModal>
+      )}
+
+      {activeModal === 'activity' && (
+        <ManagedModal title="Quick Manage Activity Types" onClose={() => { setActiveModal(null); router.refresh(); }}>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+             <Link href="/dashboard/infrastructure" className="btn-primary" style={{ textAlign: 'center' }}>Go to Infrastructure Manager</Link>
+          </div>
+        </ManagedModal>
+      )}
+
+      {activeModal === 'participants' && (
+        <ManagedModal title="Quick Manage Participants" onClose={() => { setActiveModal(null); router.refresh(); }}>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+             <Link href="/dashboard/infrastructure" className="btn-primary" style={{ textAlign: 'center' }}>Go to Infrastructure Manager</Link>
+          </div>
+        </ManagedModal>
+      )}
+
     </div>
   );
 }

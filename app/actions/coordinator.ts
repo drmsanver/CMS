@@ -100,5 +100,82 @@ export async function createCoordinatorTask(data: {
   });
 
   revalidatePath('/dashboard/coordinator-tasks');
+  return task;
+}
+
+export async function updateCoordinatorTask(id: string, data: {
+  title: string;
+  description?: string;
+  dueDate?: Date;
+  startDate?: Date;
+  groupIds: string[];
+  semesterId?: string;
+  activityTypeId?: string;
+  goalIds?: string[];
+  participantIds?: string[];
+  attachments?: { fileName: string; fileUrl: string }[];
+}) {
+  const session = await getServerSession(authOptions);
+  const currentRole = (session?.user as any)?.role;
+
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL', 'COORDINATOR'].includes(currentRole)) {
+    throw new Error("Unauthorized.");
+  }
+
+  const task = await prisma.task.update({
+    where: { id },
+    data: {
+      title: data.title,
+      description: data.description,
+      dueDate: data.dueDate,
+      startDate: data.startDate,
+      semesterId: data.semesterId,
+      activityTypeId: data.activityTypeId,
+      gradeGroups: {
+        set: data.groupIds.map(id => ({ id }))
+      },
+      goals: {
+        set: data.goalIds?.map(id => ({ id })) || []
+      },
+      participants: {
+        set: data.participantIds?.map(id => ({ id })) || []
+      },
+      attachments: {
+        deleteMany: {},
+        create: data.attachments || []
+      }
+    }
+  });
+
+  revalidatePath('/dashboard/coordinator-tasks');
+  return task;
+}
+
+export async function deleteTask(id: string) {
+  const session = await getServerSession(authOptions);
+  const currentRole = (session?.user as any)?.role;
+
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL', 'COORDINATOR'].includes(currentRole)) {
+    throw new Error("Unauthorized.");
+  }
+
+  await prisma.task.delete({ where: { id } });
+  revalidatePath('/dashboard/coordinator-tasks');
+  return { success: true };
+}
+
+export async function updateTaskStatus(id: string, status: string) {
+  const session = await getServerSession(authOptions);
+  const currentRole = (session?.user as any)?.role;
+
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL', 'COORDINATOR'].includes(currentRole)) {
+    throw new Error("Unauthorized.");
+  }
+
+  await prisma.task.update({
+    where: { id },
+    data: { status }
+  });
+  revalidatePath('/dashboard/coordinator-tasks');
   return { success: true };
 }

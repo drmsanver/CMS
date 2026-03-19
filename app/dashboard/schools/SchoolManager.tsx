@@ -126,7 +126,29 @@ export default function SchoolManager({ initialSchools }: { initialSchools: any[
               <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="input-field" />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label>Website</label>
+              <label>School Logo (URL)</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input value={formData.logoUrl} onChange={e => setFormData({...formData, logoUrl: e.target.value})} className="input-field" placeholder="https://logo-url..." />
+                {formData.logoUrl && <img src={formData.logoUrl} alt="Logo Preview" style={{ height: '40px', width: '40px', objectFit: 'contain', borderRadius: '4px', border: '1px solid var(--border-subtle)' }} />}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label>Additional Pictures (URLs)</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input value={formData.newImage} onChange={e => setFormData({...formData, newImage: e.target.value})} className="input-field" placeholder="Add gallery image URL..." />
+                <button type="button" onClick={() => addItem('images', formData.newImage)} className="btn-secondary">Add</button>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {formData.images.map((img, i) => (
+                  <div key={i} style={{ position: 'relative' }}>
+                    <img src={img} alt="" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                    <button type="button" onClick={() => removeItem('images', i)} style={{ position: 'absolute', top: -5, right: -5, background: 'var(--color-error)', color: '#fff', border: 'none', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label>Website URL</label>
               <input value={formData.websiteUrl} onChange={e => setFormData({...formData, websiteUrl: e.target.value})} className="input-field" placeholder="https://..." />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -137,24 +159,9 @@ export default function SchoolManager({ initialSchools }: { initialSchools: any[
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
                 {formData.phoneNumbers.map((p, i) => p && (
-                  <span key={i} style={{ fontSize: '0.75rem', background: 'var(--bg-main)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>
-                    {p} <button onClick={() => removeItem('phoneNumbers', i)} style={{ color: 'var(--color-error)', border: 'none', background: 'none', cursor: 'pointer' }}>×</button>
+                  <span key={i} style={{ fontSize: '0.75rem', background: 'var(--bg-main)', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {p} <button type="button" onClick={() => removeItem('phoneNumbers', i)} style={{ color: 'var(--color-error)', border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem', padding: 0 }}>×</button>
                   </span>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <label>Pictures (URLs)</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input value={formData.newImage} onChange={e => setFormData({...formData, newImage: e.target.value})} className="input-field" placeholder="Add image URL..." />
-                <button type="button" onClick={() => addItem('images', formData.newImage)} className="btn-secondary">Add</button>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
-                {formData.images.map((img, i) => (
-                  <div key={i} style={{ position: 'relative' }}>
-                    <img src={img} alt="" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
-                    <button onClick={() => removeItem('images', i)} style={{ position: 'absolute', top: -5, right: -5, background: 'var(--color-error)', color: '#fff', border: 'none', borderRadius: '50%', width: '16px', height: '16px', fontSize: '10px', cursor: 'pointer' }}>×</button>
-                  </div>
                 ))}
               </div>
             </div>

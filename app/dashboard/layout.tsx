@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import styles from "./layout.module.css";
 import Link from "next/link";
 import LogoutButton from "./LogoutButton";
+import { prisma } from "@/lib/prisma";
 
 export default async function DashboardLayout({ 
   children 
@@ -18,11 +19,20 @@ export default async function DashboardLayout({
 
   const user = session.user as any;
 
+  const org = await prisma.organization.findUnique({
+    where: { id: user.organizationId },
+    select: { name: true, logo: true }
+  });
+
   return (
     <div className={styles.dashboardContainer}>
       <aside className={styles.sidebar}>
-        <div className={styles.logo}>
-          <span style={{color: 'var(--color-primary)'}}>Edu</span>Care
+        <div className={styles.logo} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1.5rem 1rem' }}>
+          {org?.logo ? (
+            <img src={org.logo} alt={org.name} style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+          ) : (
+            <div><span style={{color: 'var(--color-primary)'}}>Edu</span>Care</div>
+          )}
         </div>
         
         <nav className={styles.nav}>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSemester, deleteSemester } from "@/app/actions/semester";
+import Link from "next/link";
 
 export default function SemesterManager({ initialSemesters }: { initialSemesters: any[] }) {
   const router = useRouter();
@@ -25,6 +26,9 @@ export default function SemesterManager({ initialSemesters }: { initialSemesters
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <Link href="/dashboard/coordinator-tasks" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.875rem' }}>
+        ← Back to Tasks
+      </Link>
       <div className="glass-panel" style={{ padding: '1.5rem' }}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
