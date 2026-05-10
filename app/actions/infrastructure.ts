@@ -13,13 +13,13 @@ export async function createActivityType(name: string) {
   if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL', 'COORDINATOR'].includes(currentRole)) {
     throw new Error("Unauthorized.");
   }
-  if (!campusId) throw new Error("No campus associated.");
+  if (!campusId) throw new Error("No campus assigned to user");
 
-  await prisma.activityType.create({
+  await prisma.defActivityType.create({
     data: { name, campusId }
   });
 
-  revalidatePath('/dashboard/coordinator-tasks');
+  revalidatePath('/dashboard/infrastructure');
   return { success: true };
 }
 
@@ -31,13 +31,13 @@ export async function createParticipant(name: string) {
   if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL', 'COORDINATOR'].includes(currentRole)) {
     throw new Error("Unauthorized.");
   }
-  if (!campusId) throw new Error("No campus associated.");
+  if (!campusId) throw new Error("No campus assigned to user");
 
-  await prisma.participant.create({
+  await prisma.defParticipant.create({
     data: { name, campusId }
   });
 
-  revalidatePath('/dashboard/coordinator-tasks');
+  revalidatePath('/dashboard/infrastructure');
   return { success: true };
 }
 
@@ -51,7 +51,7 @@ export async function updateActivityType(id: string, name: string) {
   }
   if (!campusId) throw new Error("No campus associated.");
   
-  await prisma.activityType.update({
+  await prisma.defActivityType.update({
     where: { id },
     data: { name }
   });
@@ -69,7 +69,7 @@ export async function deleteActivityType(id: string) {
   }
   if (!campusId) throw new Error("No campus associated.");
   
-  await prisma.activityType.delete({
+  await prisma.defActivityType.delete({
     where: { id }
   });
   revalidatePath('/dashboard/coordinator-tasks');
@@ -86,7 +86,7 @@ export async function updateParticipant(id: string, name: string) {
   }
   if (!campusId) throw new Error("No campus associated.");
   
-  await prisma.participant.update({
+  await prisma.defParticipant.update({
     where: { id },
     data: { name }
   });
@@ -104,7 +104,7 @@ export async function deleteParticipant(id: string) {
   }
   if (!campusId) throw new Error("No campus associated.");
   
-  await prisma.participant.delete({
+  await prisma.defParticipant.delete({
     where: { id }
   });
   revalidatePath('/dashboard/coordinator-tasks');

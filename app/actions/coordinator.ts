@@ -19,7 +19,7 @@ export async function createGradeGroup(data: { name: string; grades: string[] })
   }
   if (!campusId) throw new Error("No campus associated.");
 
-  await prisma.gradeGroup.create({
+  await prisma.defGradeGroup.create({
     data: {
       name: data.name,
       grades: data.grades,
@@ -39,7 +39,7 @@ export async function updateGradeGroup(id: string, data: { name: string; grades:
     throw new Error("Unauthorized.");
   }
 
-  await prisma.gradeGroup.update({
+  await prisma.defGradeGroup.update({
     where: { id },
     data: {
       name: data.name,
@@ -59,7 +59,7 @@ export async function deleteGradeGroup(id: string) {
     throw new Error("Unauthorized.");
   }
 
-  await prisma.gradeGroup.delete({ where: { id } });
+  await prisma.defGradeGroup.delete({ where: { id } });
 
   revalidatePath('/dashboard/grade-groups');
   return { success: true };
@@ -84,15 +84,13 @@ export async function createCoordinatorTask(data: {
     throw new Error("Unauthorized.");
   }
 
-  await prisma.task.create({
+  const task = await prisma.task.create({
     data: {
       title: data.title,
       description: data.description,
       dueDate: data.dueDate,
       createdById: userId,
-      assignedToId: data.assignedToId || userId, // Default to self if not specified? 
-      // Actually, if it's a "Grade Task", maybe it doesn't need an assignedToId? 
-      // But the schema requires it. I'll default it to the creator for now.
+      assignedToId: data.assignedToId || userId,
       gradeGroups: {
         connect: data.groupIds.map(id => ({ id }))
       }

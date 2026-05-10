@@ -6,40 +6,132 @@ import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 
-export async function addTeacher(data: { name: string; email: string; passwordRaw: string }) {
+export async function getTeachers(filters?: { campusId?: string; schoolId?: string }) {
   const session = await getServerSession(authOptions);
-  
+  const organizationId = (session?.user as any)?.organizationId;
+  if (!organizationId) return [];
+
+  const where: any = {
+    organizationId,
+    role: 'TEACHER'
+  };
+
+  if (filters?.campusId) where.campusId = filters.campusId;
+  if (filters?.schoolId) where.schoolId = filters.schoolId;
+
+  return await prisma.user.findMany({
+    where,
+    include: {
+      campus: true,
+      school: true,
+      teacherBranch: true
+    },
+    orderBy: { name: 'asc' }
+  });
+}
+
+export async function createTeacher(data: {
+  name: string;
+  email: string;
+  phone?: string;
+  photo?: string;
+  campusId: string;
+  schoolId: string;
+  teacherBranchId?: string;
+}) {
+  const session = await getServerSession(authOptions);
+  const organizationId = (session?.user as any)?.organizationId;
   const currentRole = (session?.user as any)?.role;
-  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL'].includes(currentRole)) {
-    throw new Error("Unauthorized: Only Administrators can create new Teachers.");
+
+  // Authorization: SUPER_ADMIN, ORG_ADMIN, COORDINATOR, or PRINCIPAL (if in same campus/school)
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'COORDINATOR', 'PRINCIPAL'].includes(currentRole)) {
+    throw new Error("Unauthorized.");
   }
 
-  const organizationId = (session?.user as any)?.organizationId;
-  const campusId = (session?.user as any)?.campusId;
+  if (!organizationId) throw new Error("No organization associated.");
 
-  if (!organizationId) throw new Error("Unauthorized: No organization associated.");
+  // Default password is "School123!"
+  const passwordHash = await bcrypt.hash("School123!", 10);
 
-  const existing = await prisma.user.findUnique({ where: { email: data.email } });
-  if (existing) throw new Error("A user with this email already exists.");
-
-  const hashed = await bcrypt.hash(data.passwordRaw, 10);
-
-  await prisma.user.create({
+  const teacher = await prisma.user.create({
     data: {
-      name: data.name,
-      email: data.email,
-      passwordHash: hashed,
-      role: 'TEACHER',
+      ...data,
       organizationId,
-      campusId
+      role: 'TEACHER',
+      passwordHash
     }
   });
 
   revalidatePath('/dashboard/teachers');
-  return { success: true };
+  return teacher;
 }
 
-export async function assignTeacherToClassroom(teacherId: string, classroomId: string | null) {
+export const addTeacher = createTeacher;
+
+
+export async function importTeachers(teachers: any[]) {
+  const session = await getServerSession(authOptions);
+  const organizationId = (session?.user as any)?.organizationId;
+  if (!organizationId) throw new Error("Unauthorized.");
+
+  const passwordHash = await bcrypt.hash("School123!", 10);
+
+  const results = {
+    created: 0,
+    errors: [] as string[]
+  };
+
+  for (const t of teachers) {
+    try {
+      await prisma.user.create({
+        data: {
+          name: t.name,
+          email: t.email,
+          phone: t.phone,
+          campusId: t.campusId,
+          schoolId: t.schoolId,
+          teacherBranchId: t.teacherBranchId,
+          organizationId,
+          role: 'TEACHER',
+          passwordHash
+        }
+      });
+      results.created++;
+    } catch (err: any) {
+      results.errors.push(`Failed for ${t.email}: ${err.message}`);
+    }
+  }
+
+  revalidatePath('/dashboard/teachers');
+  return results;
+}
+
+export async function updateTeacher(id: string, data: {
+  name?: string;
+  email?: string;
+  phone?: string;
+  photo?: string;
+  campusId?: string;
+  schoolId?: string;
+  teacherBranchId?: string;
+}) {
+  const session = await getServerSession(authOptions);
+  const currentRole = (session?.user as any)?.role;
+
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'COORDINATOR', 'PRINCIPAL'].includes(currentRole)) {
+    throw new Error("Unauthorized.");
+  }
+
+  const teacher = await prisma.user.update({
+    where: { id },
+    data
+  });
+
+  revalidatePath('/dashboard/teachers');
+  return teacher;
+}
+
+export async function deleteTeacher(id: string) {
   const session = await getServerSession(authOptions);
   const currentRole = (session?.user as any)?.role;
 
@@ -47,33 +139,7 @@ export async function assignTeacherToClassroom(teacherId: string, classroomId: s
     throw new Error("Unauthorized.");
   }
 
-  // Use a transaction to ensure 1:1 consistency if needed, 
-  // but Prisma @unique + connect/disconnect handles much of this.
-  
-  // 1. First, if we are assigning to a new classroom, 
-  // we should check if that classroom already has a different teacher 
-  // (Prisma will throw if we try to connect a second teacher to a @unique field, 
-  // but let's be explicit if we want to 'swap' or 'overwrite').
-  
-  // Actually, the simplest way to "assign teacher X to classroom Y":
-  // Update classroom Y to have primaryTeacherId = X.
-  // Because primaryTeacherId is @unique on Classroom, this ensures no two teachers share a class.
-  // Because primaryClassroom is the inverse relation, a teacher can only have one.
-  
-  if (classroomId) {
-    await prisma.classroom.update({
-      where: { id: classroomId },
-      data: { primaryTeacherId: teacherId }
-    });
-  } else {
-    // If classroomId is null, we are "unassigning" the teacher from THEIR current classroom
-    await prisma.classroom.updateMany({
-      where: { primaryTeacherId: teacherId },
-      data: { primaryTeacherId: null }
-    });
-  }
-
+  await prisma.user.delete({ where: { id } });
   revalidatePath('/dashboard/teachers');
-  revalidatePath('/dashboard/classrooms');
   return { success: true };
 }

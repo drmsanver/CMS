@@ -7,7 +7,7 @@ export default async function SemestersPage() {
   const session = await getServerSession(authOptions);
   const campusId = (session?.user as any)?.campusId;
 
-  const semesters = await prisma.semester.findMany({
+  const semesters = await prisma.defSemester.findMany({
     where: { campusId },
     orderBy: { createdAt: 'desc' }
   });

@@ -18,8 +18,10 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  campuses  Campus[]
-  users     User[]
+  campuses    Campus[]
+  users           User[]
+  campusTypes     DefCampusType[]
+  teacherBranches DefTeacherBranch[]
 }
 
 model Campus {
@@ -35,7 +37,7 @@ model Campus {
   websiteUrl     String?      // School website
   email          String?      // General contact email
   socialMedia    Json?        // { twitter: "...", facebook: "...", etc }
-  orderWeight    Int          @default(0) // Higher value = listed at top
+  orderWeight    Int          @default(0) // Higher value = listed first
   images         String[]     // Multiple picture URLs
   grades         String[]     // Grades available on this campus
 
@@ -43,14 +45,54 @@ model Campus {
   updatedAt      DateTime     @updatedAt
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  typeId         String?      // Link to DefCampusType
+  type           DefCampusType? @relation(fields: [typeId], references: [id], onDelete: SetNull)
+  
+  schools        School[]
   users          User[]
   students       Student[]
   classrooms     Classroom[]
-  gradeGroups    GradeGroup[]
-  semesters      Semester[]
+  gradeGroups    DefGradeGroup[]
+  semesters      DefSemester[]
   goals          Goal[]
-  activityTypes  ActivityType[]
-  participants   Participant[]
+  activityTypes  DefActivityType[]
+  participants   DefParticipant[]
+  taskRequesters DefTaskRequester[]
+}
+
+model DefCampusType {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String   // e.g. "Bağımsız", "Okul"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campuses       Campus[]
+}
+
+model School {
+  id               String   @id @default(cuid())
+  campusId         String
+  name             String   // e.g. "Kindergarten", "Elementary School"
+  principalName    String?
+  principalPhoto   String?  // URL
+  principalPhone1  String?
+  principalPhone2  String?
+  address          String?
+  logoUrl          String?
+  capacity         Int?
+  classroomCount   Int?
+  gradeLevels      String[] // e.g. ["Kindergarten"], ["1", "2" ...]
+  orderWeight      Int      @default(0)
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  campus           Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  classrooms       Classroom[]
+  users            User[]
+  students         Student[]
 }
 
 // ---------------------------------------------
@@ -68,6 +110,13 @@ enum Role {
   STUDENT
 }
 
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+
 model User {
   id             String       @id @default(cuid())
   organizationId String
@@ -81,6 +130,14 @@ model User {
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   campus         Campus?      @relation(fields: [campusId], references: [id], onDelete: SetNull)
+  schoolId       String?      // New: Link to specific school unit
+  school         School?      @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+  teacherBranchId String?     // Link to DefTeacherBranch
+  teacherBranch   DefTeacherBranch? @relation(fields: [teacherBranchId], references: [id], onDelete: SetNull)
+
+  photo          String?      // Profile photo URL
+  phone          String?      // Contact phone
+  isPhoneVerified Boolean     @default(false)
 
   // Relations for specific roles
   counselingRecords  CounselingRecord[]          @relation("CounselorRecords")
@@ -92,6 +149,18 @@ model User {
   counselorGrades    CounselorGradeAssignment[]  @relation("CounselorGrades")
 }
 
+model DefTeacherBranch {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String   // e.g. "Matematik", "Fen"
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users          User[]
+}
+
 // ---------------------------------------------
 // Classrooms
 // ---------------------------------------------
@@ -99,6 +168,7 @@ model User {
 model Classroom {
   id               String   @id @default(cuid())
   campusId         String
+  schoolId         String?  // New: link to specific school unit
   name             String       // e.g. "3-A", "5-B"
   gradeLevel       String       // e.g. "3", "5", "Kindergarten"
   primaryTeacherId String?  @unique
@@ -106,6 +176,7 @@ model Classroom {
   updatedAt        DateTime @updatedAt
 
   campus           Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  school           School?  @relation(fields: [schoolId], references: [id], onDelete: SetNull)
   primaryTeacher   User?    @relation("PrimaryTeacher", fields: [primaryTeacherId], references: [id])
   students         Student[]
 }
@@ -114,7 +185,7 @@ model Classroom {
 // Grade Groups (Coordinator focus)
 // ---------------------------------------------
 
-model GradeGroup {
+model DefGradeGroup {
   id        String   @id @default(cuid())
   campusId  String
   name      String   // e.g. "Elementary School", "Middle School"
@@ -130,7 +201,7 @@ model GradeGroup {
 // Semester, Goal & Activity Infrastructure
 // ---------------------------------------------
 
-model Semester {
+model DefSemester {
   id        String   @id @default(cuid())
   campusId  String
   name      String   // e.g. "2025-2026 Spring", "2025-2026 1st Quarter"
@@ -147,15 +218,18 @@ model Goal {
   code        String   // Unique goal code
   title       String   // Short Title
   description String?  @db.Text
-  mandatedBy  String   // MEB, "Name of the College", School Principle, Teachers, Counselors
+  mandatedBy  String?  // Keep for legacy/manual entry if needed
+  requesterId String?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   campus      Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  requester   DefTaskRequester? @relation(fields: [requesterId], references: [id])
   tasks       Task[]   @relation("TaskToGoals")
 }
 
-model ActivityType {
+model DefActivityType {
   id        String   @id @default(cuid())
   campusId  String
   name      String   // e.g. "seminar", "meeting", "exhibition", "training"
@@ -166,7 +240,7 @@ model ActivityType {
   tasks     Task[]
 }
 
-model Participant {
+model DefParticipant {
   id        String   @id @default(cuid())
   campusId  String
   name      String   // e.g. "Main College", "Specific Campus"
@@ -174,7 +248,7 @@ model Participant {
   updatedAt DateTime @updatedAt
 
   campus    Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
-  tasks     Task[]   @relation("TaskToParticipants")
+  tasks     Task[]   @relation("TaskToParticipant")
 }
 
 // ---------------------------------------------
@@ -191,6 +265,17 @@ model CounselorGradeAssignment {
   @@unique([userId, gradeLevel])
 }
 
+model DefTaskRequester {
+  id        String   @id @default(cuid())
+  campusId  String
+  name      String   // e.g. "MEB", "College Principal"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campus    Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  goals     Goal[]
+}
+
 // ---------------------------------------------
 // Core Entities: Students
 // ---------------------------------------------
@@ -202,6 +287,7 @@ model Student {
   studentNumber  String       @unique
   firstName      String
   lastName       String
+  gender         Gender?
   gradeLevel     String
   dateOfBirth    DateTime?
   
@@ -218,6 +304,8 @@ model Student {
   updatedAt      DateTime     @updatedAt
 
   campus         Campus       @relation(fields: [campusId], references: [id], onDelete: Cascade)
+  schoolId       String?
+  school         School?      @relation(fields: [schoolId], references: [id], onDelete: SetNull)
   classroom      Classroom?   @relation(fields: [classroomId], references: [id], onDelete: SetNull)
   records        CounselingRecord[]
   observations   ObservationReport[]
@@ -279,12 +367,12 @@ model Task {
   assignedTo    User     @relation("AssignedTo", fields: [assignedToId], references: [id])
   createdBy     User     @relation("CreatedBy", fields: [createdById], references: [id])
   
-  semester      Semester? @relation(fields: [semesterId], references: [id])
-  activityType  ActivityType? @relation(fields: [activityTypeId], references: [id])
+  semester      DefSemester? @relation(fields: [semesterId], references: [id])
+  activityType  DefActivityType? @relation(fields: [activityTypeId], references: [id])
   
-  gradeGroups   GradeGroup[] @relation("TaskToGradeGroup")
+  gradeGroups   DefGradeGroup[] @relation("TaskToGradeGroup")
   goals         Goal[]       @relation("TaskToGoals")
-  participants  Participant[] @relation("TaskToParticipants")
+  participants  DefParticipant[] @relation("TaskToParticipant")
   attachments   Attachment[]
 }
 

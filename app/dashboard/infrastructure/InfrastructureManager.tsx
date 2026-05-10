@@ -72,49 +72,61 @@ export default function InfrastructureManager({ activityTypes, participants }: {
         ← Back to Tasks
       </Link>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: (activityTypes.length > 0 || editType || (!participants.length && !editPart)) ? '1fr 1fr' : '1fr', 
+        gap: '2rem' 
+      }}>
+        {/* If both are empty, it might be a new init or a split page. 
+            We should check which one we WANT to show. 
+            Actually, let's just check if the arrays are passed.
+        */}
       
       {/* Activity Types */}
-      <div className="glass-panel" style={{ padding: '2rem' }}>
-        <h3 style={{ marginBottom: '1.5rem' }}>Activity Types</h3>
-        <form onSubmit={handleTypeSubmit} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          <input required value={typeName} onChange={e => setTypeName(e.target.value)} className="input-field" placeholder="Seminar, Meeting..." />
-          <button type="submit" disabled={loading} className="btn-primary">{loading ? '...' : (editType ? 'Update' : 'Add')}</button>
-          {editType && <button type="button" onClick={() => {setEditType(null); setTypeName("");}} className="btn-secondary">Cancel</button>}
-        </form>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {activityTypes.map(t => (
-            <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-              <span>{t.name}</span>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={() => {setEditType(t); setTypeName(t.name);}} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>✏️</button>
-                <button onClick={() => handleDeleteType(t.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>🗑️</button>
+      {(activityTypes.length > 0 || editType || (!participants.length && !editPart)) && (
+        <div className="glass-panel" style={{ padding: '2rem' }}>
+          <h3 style={{ marginBottom: '1.5rem' }}>Activity Types</h3>
+          <form onSubmit={handleTypeSubmit} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            <input required value={typeName} onChange={e => setTypeName(e.target.value)} className="input-field" placeholder="Seminar, Meeting..." />
+            <button type="submit" disabled={loading} className="btn-primary">{loading ? '...' : (editType ? 'Update' : 'Add')}</button>
+            {editType && <button type="button" onClick={() => {setEditType(null); setTypeName("");}} className="btn-secondary">Cancel</button>}
+          </form>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {activityTypes.map(t => (
+              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <span>{t.name}</span>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => {setEditType(t); setTypeName(t.name);}} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>✏️</button>
+                  <button onClick={() => handleDeleteType(t.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>🗑️</button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Participants */}
-      <div className="glass-panel" style={{ padding: '2rem' }}>
-        <h3 style={{ marginBottom: '1.5rem' }}>Participants</h3>
-        <form onSubmit={handlePartSubmit} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-          <input required value={participantName} onChange={e => setParticipantName(e.target.value)} className="input-field" placeholder="Main College, Branch X..." />
-          <button type="submit" disabled={loading} className="btn-primary">{loading ? '...' : (editPart ? 'Update' : 'Add')}</button>
-          {editPart && <button type="button" onClick={() => {setEditPart(null); setParticipantName("");}} className="btn-secondary">Cancel</button>}
-        </form>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {participants.map(p => (
-            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
-              <span>{p.name}</span>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={() => {setEditPart(p); setParticipantName(p.name);}} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>✏️</button>
-                <button onClick={() => handleDeletePart(p.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>🗑️</button>
+      {(participants.length > 0 || editPart || (!activityTypes.length && !editType)) && (
+        <div className="glass-panel" style={{ padding: '2rem' }}>
+          <h3 style={{ marginBottom: '1.5rem' }}>Participants</h3>
+          <form onSubmit={handlePartSubmit} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+            <input required value={participantName} onChange={e => setParticipantName(e.target.value)} className="input-field" placeholder="Main College, Branch X..." />
+            <button type="submit" disabled={loading} className="btn-primary">{loading ? '...' : (editPart ? 'Update' : 'Add')}</button>
+            {editPart && <button type="button" onClick={() => {setEditPart(null); setParticipantName("");}} className="btn-secondary">Cancel</button>}
+          </form>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {participants.map(p => (
+              <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border-subtle)' }}>
+                <span>{p.name}</span>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => {setEditPart(p); setParticipantName(p.name);}} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>✏️</button>
+                  <button onClick={() => handleDeletePart(p.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: '1rem' }}>🗑️</button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       </div>
     </div>

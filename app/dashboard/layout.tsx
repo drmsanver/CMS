@@ -5,6 +5,7 @@ import styles from "./layout.module.css";
 import Link from "next/link";
 import LogoutButton from "./LogoutButton";
 import { prisma } from "@/lib/prisma";
+import NavGroup from "./NavGroup";
 
 export default async function DashboardLayout({ 
   children 
@@ -37,16 +38,27 @@ export default async function DashboardLayout({
         
         <nav className={styles.nav}>
           <Link href="/dashboard" className={styles.navItem}>Dashboard</Link>
+          <Link href="/dashboard/schools" className={styles.navItem}>Branches</Link>
+          <Link href="/dashboard/school-units" className={styles.navItem}>Schools</Link>
+          <Link href="/dashboard/teachers" className={styles.navItem}>Teachers</Link>
           <Link href="/dashboard/students" className={styles.navItem}>Students</Link>
           <Link href="/dashboard/classrooms" className={styles.navItem}>Classrooms</Link>
-          <Link href="/dashboard/teachers" className={styles.navItem}>Teachers</Link>
           <Link href="/dashboard/counselors" className={styles.navItem}>Counselors</Link>
+          {(user.role === 'SUPER_ADMIN' || user.role === 'ORG_ADMIN') && (
+            <Link href="/dashboard/users" className={styles.navItem}>Users</Link>
+          )}
           <hr style={{ margin: '0.5rem 0', border: '0', borderTop: '1px solid var(--border-subtle)' }} />
-          <Link href="/dashboard/schools" className={styles.navItem}>Schools / Branches</Link>
-          <Link href="/dashboard/semesters" className={styles.navItem}>Semesters</Link>
-          <Link href="/dashboard/goals" className={styles.navItem}>Goals</Link>
-          <Link href="/dashboard/grade-groups" className={styles.navItem}>Grade Groups</Link>
-          <Link href="/dashboard/infrastructure" className={styles.navItem}>Infrastructure</Link>
+          
+          <NavGroup label="Definitions">
+            <Link href="/dashboard/semesters" className={styles.navItem}>Semesters</Link>
+            <Link href="/dashboard/goals" className={styles.navItem}>Strategic Goals</Link>
+            <Link href="/dashboard/grade-groups" className={styles.navItem}>Grade Groups</Link>
+            <Link href="/dashboard/activity-types" className={styles.navItem}>Activity Types</Link>
+            <Link href="/dashboard/participants" className={styles.navItem}>Participants</Link>
+            <Link href="/dashboard/task-requesters" className={styles.navItem}>Task Requesters</Link>
+            <Link href="/dashboard/teacher-branches" className={styles.navItem}>Teaching Branches</Link>
+          </NavGroup>
+
           <hr style={{ margin: '0.5rem 0', border: '0', borderTop: '1px solid var(--border-subtle)' }} />
           <Link href="/dashboard/coordinator-tasks" className={styles.navItem}>Coordinator Tasks</Link>
           <Link href="/dashboard/tasks" className={styles.navItem}>My Tasks</Link>

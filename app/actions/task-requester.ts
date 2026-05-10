@@ -5,13 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-export async function createGoal(data: { 
-  code: string; 
-  title: string; 
-  description?: string; 
-  mandatedBy?: string;
-  requesterId?: string;
-}) {
+export async function createTaskRequester(name: string) {
   const session = await getServerSession(authOptions);
   const campusId = (session?.user as any)?.campusId;
   const currentRole = (session?.user as any)?.role;
@@ -19,24 +13,17 @@ export async function createGoal(data: {
   if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL', 'COORDINATOR'].includes(currentRole)) {
     throw new Error("Unauthorized.");
   }
-  if (!campusId) throw new Error("No campus associated.");
+  if (!campusId) throw new Error("No campus assigned to user");
 
-  await prisma.goal.create({
-    data: {
-      code: data.code,
-      title: data.title,
-      description: data.description,
-      mandatedBy: data.mandatedBy,
-      requesterId: data.requesterId,
-      campusId,
-    }
+  await prisma.defTaskRequester.create({
+    data: { name, campusId }
   });
 
   revalidatePath('/dashboard/goals');
   return { success: true };
 }
 
-export async function deleteGoal(id: string) {
+export async function updateTaskRequester(id: string, name: string) {
   const session = await getServerSession(authOptions);
   const currentRole = (session?.user as any)?.role;
 
@@ -44,19 +31,16 @@ export async function deleteGoal(id: string) {
     throw new Error("Unauthorized.");
   }
 
-  await prisma.goal.delete({ where: { id } });
+  await prisma.defTaskRequester.update({
+    where: { id },
+    data: { name }
+  });
 
   revalidatePath('/dashboard/goals');
   return { success: true };
 }
 
-export async function updateGoal(id: string, data: { 
-  code: string; 
-  title: string; 
-  description?: string; 
-  mandatedBy?: string;
-  requesterId?: string;
-}) {
+export async function deleteTaskRequester(id: string) {
   const session = await getServerSession(authOptions);
   const currentRole = (session?.user as any)?.role;
 
@@ -64,9 +48,8 @@ export async function updateGoal(id: string, data: {
     throw new Error("Unauthorized.");
   }
 
-  await prisma.goal.update({
-    where: { id },
-    data
+  await prisma.defTaskRequester.delete({
+    where: { id }
   });
 
   revalidatePath('/dashboard/goals');

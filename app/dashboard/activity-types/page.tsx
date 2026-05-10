@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import InfrastructureManager from "./InfrastructureManager";
+import InfrastructureManager from "../infrastructure/InfrastructureManager";
 
-export default async function InfrastructurePage() {
+export default async function ActivityTypesPage() {
   const session = await getServerSession(authOptions);
   const campusId = (session?.user as any)?.campusId;
 
@@ -12,24 +12,15 @@ export default async function InfrastructurePage() {
     orderBy: { name: 'asc' }
   });
 
-  const participants = await prisma.defParticipant.findMany({
-    where: { campusId },
-    orderBy: { name: 'asc' }
-  });
-
   return (
     <div className="animate-fade-in">
       <div style={{ marginBottom: '2rem' }}>
-        <h2>Infrastructure & Participants</h2>
+        <h2>Activity Type Management</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-          Manage global activity types and participant groups.
+          Define different types of activities such as seminars, meetings, etc.
         </p>
       </div>
-
-      <InfrastructureManager 
-        activityTypes={JSON.parse(JSON.stringify(activityTypes))} 
-        participants={JSON.parse(JSON.stringify(participants))}
-      />
+      <InfrastructureManager activityTypes={JSON.parse(JSON.stringify(activityTypes))} participants={[]} />
     </div>
   );
 }

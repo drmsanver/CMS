@@ -7,7 +7,7 @@ export default async function GradeGroupsPage() {
   const session = await getServerSession(authOptions);
   const campusId = (session?.user as any)?.campusId;
 
-  const gradeGroups = await prisma.gradeGroup.findMany({
+  const groups = await prisma.defGradeGroup.findMany({
     where: { campusId },
     orderBy: { name: 'asc' }
   });
@@ -21,7 +21,7 @@ export default async function GradeGroupsPage() {
         </p>
       </div>
 
-      <GradeGroupManager initialGroups={JSON.parse(JSON.stringify(gradeGroups))} />
+      <GradeGroupManager initialGroups={JSON.parse(JSON.stringify(groups))} />
     </div>
   );
 }

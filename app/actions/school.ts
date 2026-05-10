@@ -5,39 +5,36 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 
-export async function addSchool(data: {
+export async function createSchool(data: {
+  campusId: string;
   name: string;
-  fullName?: string;
-  shortName?: string;
   principalName?: string;
+  principalPhoto?: string;
+  principalPhone1?: string;
+  principalPhone2?: string;
   address?: string;
-  phoneNumbers: string[];
   logoUrl?: string;
-  websiteUrl?: string;
-  email?: string;
-  socialMedia?: any;
+  capacity?: number;
+  classroomCount?: number;
+  gradeLevels: string[];
   orderWeight?: number;
-  images: string[];
-  grades: string[];
 }) {
   const session = await getServerSession(authOptions);
   const currentRole = (session?.user as any)?.role;
-  const organizationId = (session?.user as any)?.organizationId;
 
-  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL'].includes(currentRole)) {
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'COORDINATOR'].includes(currentRole)) {
     throw new Error("Unauthorized.");
   }
 
-  if (!organizationId) throw new Error("No organization associated.");
-
-  await prisma.campus.create({
+  await prisma.school.create({
     data: {
       ...data,
-      organizationId
+      capacity: data.capacity ? Number(data.capacity) : undefined,
+      classroomCount: data.classroomCount ? Number(data.classroomCount) : undefined,
     }
   });
 
-  revalidatePath('/dashboard/schools');
+  revalidatePath('/dashboard/school-units');
   return { success: true };
 }
 
@@ -45,16 +42,22 @@ export async function updateSchool(id: string, data: any) {
   const session = await getServerSession(authOptions);
   const currentRole = (session?.user as any)?.role;
 
-  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL'].includes(currentRole)) {
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'COORDINATOR'].includes(currentRole)) {
     throw new Error("Unauthorized.");
   }
 
-  await prisma.campus.update({
+  const { id: _, campusId: __, ...updateData } = data;
+
+  await prisma.school.update({
     where: { id },
-    data
+    data: {
+      ...updateData,
+      capacity: updateData.capacity ? Number(updateData.capacity) : undefined,
+      classroomCount: updateData.classroomCount ? Number(updateData.classroomCount) : undefined,
+    }
   });
 
-  revalidatePath('/dashboard/schools');
+  revalidatePath('/dashboard/school-units');
   return { success: true };
 }
 
@@ -62,12 +65,12 @@ export async function deleteSchool(id: string) {
   const session = await getServerSession(authOptions);
   const currentRole = (session?.user as any)?.role;
 
-  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL'].includes(currentRole)) {
+  if (!['SUPER_ADMIN', 'ORG_ADMIN', 'COORDINATOR'].includes(currentRole)) {
     throw new Error("Unauthorized.");
   }
 
-  await prisma.campus.delete({ where: { id } });
+  await prisma.school.delete({ where: { id } });
 
-  revalidatePath('/dashboard/schools');
+  revalidatePath('/dashboard/school-units');
   return { success: true };
 }

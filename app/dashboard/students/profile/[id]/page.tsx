@@ -25,15 +25,21 @@ export default async function StudentProfilePage({ params }: { params: Promise<{
 
   return (
     <div className="animate-fade-in">
-      {/* Header section */}
-      <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h1 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>{student.firstName} {student.lastName}</h1>
-          <p style={{ color: 'var(--text-secondary)' }}>ID: {student.studentNumber} • Grade: {student.gradeLevel}</p>
+      <div className="glass-panel" style={{ padding: '2rem', marginBottom: '2rem', borderBottom: '2px solid var(--color-primary)' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <Link href="/dashboard/students" style={{ color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>←</span> Back to Directory
+          </Link>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <button className="btn-secondary">Export MEB Report (PDF)</button>
-          <button className="btn-primary">+ New Record</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ fontSize: '2rem', marginBottom: '0.25rem' }}>{student.firstName} {student.lastName}</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>ID: {student.studentNumber} • Grade: {student.gradeLevel}</p>
+          </div>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button className="btn-secondary">Export MEB Report (PDF)</button>
+            <button className="btn-primary">+ New Record</button>
+          </div>
         </div>
       </div>
 

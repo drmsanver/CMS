@@ -22,12 +22,12 @@ export default async function CoordinatorTasksPage() {
     orderBy: { createdAt: 'desc' }
   });
 
-  const gradeGroups = await prisma.gradeGroup.findMany({
+  const gradeGroups = await prisma.defGradeGroup.findMany({
     where: { campusId },
     orderBy: { name: 'asc' }
   });
 
-  const semesters = await prisma.semester.findMany({
+  const semesters = await prisma.defSemester.findMany({
     where: { campusId },
     orderBy: { createdAt: 'desc' }
   });
@@ -37,12 +37,12 @@ export default async function CoordinatorTasksPage() {
     orderBy: { code: 'asc' }
   });
 
-  const activityTypes = await prisma.activityType.findMany({
+  const activityTypes = await prisma.defActivityType.findMany({
     where: { campusId },
     orderBy: { name: 'asc' }
   });
 
-  const participants = await prisma.participant.findMany({
+  const participants = await prisma.defParticipant.findMany({
     where: { campusId },
     orderBy: { name: 'asc' }
   });

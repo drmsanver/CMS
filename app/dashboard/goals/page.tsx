@@ -9,7 +9,13 @@ export default async function GoalsPage() {
 
   const goals = await prisma.goal.findMany({
     where: { campusId },
+    include: { requester: true },
     orderBy: { code: 'asc' }
+  });
+
+  const requesters = await prisma.defTaskRequester.findMany({
+    where: { campusId },
+    orderBy: { name: 'asc' }
   });
 
   return (
@@ -21,7 +27,10 @@ export default async function GoalsPage() {
         </p>
       </div>
 
-      <GoalManager initialGoals={JSON.parse(JSON.stringify(goals))} />
+      <GoalManager 
+        initialGoals={JSON.parse(JSON.stringify(goals))} 
+        requesters={JSON.parse(JSON.stringify(requesters))} 
+      />
     </div>
   );
 }

@@ -29,6 +29,7 @@ export const authOptions: NextAuthOptions = {
           include: {
             organization: true,
             campus: true,
+            school: true,
           }
         });
 
@@ -49,7 +50,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           organizationId: user.organizationId,
           campusId: user.campusId,
-          // Used internally for jwt mapping
+          schoolId: user.schoolId,
         };
       },
     }),
@@ -60,6 +61,7 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role;
         token.organizationId = (user as any).organizationId;
         token.campusId = (user as any).campusId;
+        token.schoolId = (user as any).schoolId;
       }
       return token;
     },
@@ -69,6 +71,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role;
         (session.user as any).organizationId = token.organizationId;
         (session.user as any).campusId = token.campusId;
+        (session.user as any).schoolId = token.schoolId;
       }
       return session;
     },

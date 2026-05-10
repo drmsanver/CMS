@@ -18,19 +18,24 @@ export async function addStudent(data: {
   motherPhone?: string;
   motherEmail?: string;
   defaultContact?: string;
+  gender?: any;
+  schoolId?: string;
+  classroomId?: string;
+  campusId?: string;
 }) {
   const session = await getServerSession(authOptions);
-  const campusId = (session?.user as any)?.campusId;
+  const sessionCampusId = (session?.user as any)?.campusId;
+  const targetCampusId = data.campusId || sessionCampusId;
 
-  if (!campusId) throw new Error("Unauthorized: No campus associated.");
+  if (!targetCampusId) throw new Error("Unauthorized: No campus associated.");
 
-  const { dateOfBirth, ...rest } = data;
+  const { dateOfBirth, campusId: _, ...rest } = data;
 
   await prisma.student.create({
     data: {
       ...rest,
       dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-      campusId,
+      campusId: targetCampusId,
     }
   });
 
@@ -40,17 +45,20 @@ export async function addStudent(data: {
 
 export async function addStudentsBulk(students: any[]) {
   const session = await getServerSession(authOptions);
-  const campusId = (session?.user as any)?.campusId;
-
-  if (!campusId) throw new Error("Unauthorized: No campus associated.");
+  const sessionCampusId = (session?.user as any)?.campusId;
 
   const dataToInsert = students.map(s => ({
     studentNumber: String(s.studentNumber),
     firstName: String(s.firstName),
     lastName: String(s.lastName),
+    gender: s.gender,
     gradeLevel: String(s.gradeLevel),
-    campusId
-  }));
+    schoolId: s.schoolId,
+    classroomId: s.classroomId,
+    campusId: s.campusId || sessionCampusId
+  })).filter(s => s.campusId); // Ensure campusId exists
+
+  if (dataToInsert.length === 0) return { success: true, count: 0 };
 
   await prisma.student.createMany({
     data: dataToInsert,

@@ -15,7 +15,7 @@ export async function createSemester(data: { name: string }) {
   }
   if (!campusId) throw new Error("No campus associated.");
 
-  await prisma.semester.create({
+  await prisma.defSemester.create({
     data: {
       name: data.name,
       campusId,
@@ -33,8 +33,6 @@ export async function deleteSemester(id: string) {
   if (!['SUPER_ADMIN', 'ORG_ADMIN', 'PRINCIPAL', 'COORDINATOR'].includes(currentRole)) {
     throw new Error("Unauthorized.");
   }
-
-  await prisma.semester.delete({ where: { id } });
 
   revalidatePath('/dashboard/semesters');
   return { success: true };
